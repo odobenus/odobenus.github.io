@@ -94,7 +94,8 @@ disqus_short_name: dosro4no
 disqus_show_comment_count: false
 
 # Google Analytics
-google_analytics_tracking_id: 
+google_analytics_tracking_id: UA-2233393-3 
+yandex_metrica_tracking_id: 21140866
 
 # Facebook Like
 facebook_like: false

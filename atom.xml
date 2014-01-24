@@ -1,0 +1,1010 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Досрочно завершим!]]></title>
+  <link href="http://odobenus.github.io/atom.xml" rel="self"/>
+  <link href="http://odobenus.github.io/"/>
+  <updated>2014-01-24T19:05:06+04:00</updated>
+  <id>http://odobenus.github.io/</id>
+  <author>
+    <name><![CDATA[Alexey Kishkin]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Переезд сайта]]></title>
+    <link href="http://odobenus.github.io/blog/2013/04/28/pierieiezd-saita/"/>
+    <updated>2013-04-28T01:15:00+04:00</updated>
+    <id>http://odobenus.github.io/blog/2013/04/28/pierieiezd-saita</id>
+    <content type="html"><![CDATA[<p>Сайт переехал на новую платформу. Вопросы, предложения можно тут в комментариях.</p>
+
+<!-- 18139636.883344074.1367097431.2306994b1c77377645403f5e999b9cf3 -->
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ProblemK, Алгоритм и структуры данных]]></title>
+    <link href="http://odobenus.github.io/blog/2011/03/29/problemk/"/>
+    <updated>2011-03-29T00:00:00+04:00</updated>
+    <id>http://odobenus.github.io/blog/2011/03/29/problemk</id>
+    <content type="html"><![CDATA[<p>Типовой способ расчета электронной таблицы заключается в том, что в
+памяти строится таблица, содержащая выражения ячеек, а затем все эти
+ячейки рекурсивно вычисляются. То есть, если ячейка A1 ссылается на
+другую (скажем, C2), чтобы получить значение C2 из поцедуры вычисления
+A2 вызывается вычисление C2.</p>
+
+<p>Несмотря на все достоинства, у такого метода есть очевидные
+недостатки.</p>
+
+<!-- more -->
+
+
+<ul>
+<li>Циклические ссылки представляют проблему. Поэтому при расчетах
+требуются дополнительные усилия, чтобы либо отмечать ячейки, которые
+сейчас в состоянии расчета, либо вести определенный лог, в котором
+перечичслены ячейкм в состоянии расчета.</li>
+<li>Такой подход трудно масштабировать. Предполагается, что вся таблица
+должна быть в памяти и доступна в любой момент.</li>
+</ul>
+
+
+<p>Я предполагаю использовать другой подход, который на мой взгляд проще
+для восприятия и сопровождения. Идея простая &ndash; мы пытаемся вычислить
+ячейки в том порядке, в котором нам их поставляет парсер. И если не
+хватает зависимостей, чтобы вычислить ячейку &ndash; мы просто откладываем
+ее вычисление на &ldquo;попозже&rdquo;.</p>
+
+<p>То есть алгоритм такой</p>
+
+<ul>
+<li>парсер при разборе заносит все выражения ячеек в определенную
+очередь</li>
+<li>вычислитель пробует вычислить первую ячейку из очереди.</li>
+<li>если удалось, ее значение помещается в valuecache, а сама ячейка
+удаляется из очереди.</li>
+<li>если не удалось &ndash; эта ячейка помещается в конец очереди.</li>
+<li>когда очередь станет пустой &ndash; это значит вся таблица рассчитана,
+можно начинать ее печатать.</li>
+<li>В случае циклических зависимостей или нереальных ссылок (например за
+границы таблицы) в очереди образуется <em>сухой остаток</em> &ndash; ячейки которые
+невозможно рассчитать в принципе.  Мы их просто переносим в valuecache
+со значением {error, badref};</li>
+<li>Чтобы узнать, что остались только нерешаемые ячейки в очереди, будем вести
+счетчик подряд неудачных вычислений (который сбрасывается при любом удачном
+вычислении). Если этот счетчик больше чем длина очереди &ndash; значит мы просто
+тасуем нерешаемые ячейки.</li>
+</ul>
+
+
+<p>Тогда складывается такой набор модулей:</p>
+
+<h2>Модули</h2>
+
+<p><img src="https://lh4.googleusercontent.com/_qBKy8gbHL84/TZE_bksgyOI/AAAAAAAABz8/FsGvv_IhhJ8/s800/modules.png"></p>
+
+<ul>
+<li><strong>Главный модуль</strong>, содержит start point</li>
+<li><strong>parser</strong> считывает <em>stdin</em> и делает разбор таблицы и ячеек в
+внутреннюю форму. Результат помещается в &ldquo;трубу&rdquo;</li>
+<li><strong>solver</strong> вычисляет значения ячеек из &ldquo;трубы&rdquo; и помещает значения ячеек
+в valuecache. Разруливает зависимости ячеек.</li>
+<li><strong>print</strong>  выводит простыню в stdout из valuecache.</li>
+<li><strong>machine</strong> вычисление выражений ячеек</li>
+<li><strong>cell</strong> управляет <em>внешним видом</em> ячеек. То есть &ndash; как они должны
+выглядеть в выводе, как должны собираться/разбираться ссылки на
+ячейки.</li>
+<li><strong>valuecache</strong> хранит значения (только значения, никаких формул),
+ячеек. Простое KV storage</li>
+<li><strong>pipe</strong> &ldquo;труба&rdquo; применяемая для разруливания порядка расчетов
+ячеек, это по натуре queue</li>
+</ul>
+
+
+<h2>Достоинства такого алгоритма</h2>
+
+<ul>
+<li>Легко масштабируется по памяти &ndash; интерфейс valuecache и pipe
+простые, реализация скрыта, ничто не мешает при необходимости
+переписать valuecache чтобы он использовал, скажем, nosql для
+сохранения данных, Или к примеру использовать AMQP для очереди. При
+этом остальная часть программы, естественно, остается неихменной.</li>
+<li>Легко масштабируется по процессам/процессорам. Для этого надо всего
+лишь <del>выполнить</del> <del>партиц</del>. <del>партишн.</del>
+распилить очередь по числу процессов, и дать каждому процессу по его
+куску очереди. А когда они все завершат работу, собрать нерешаемые
+ячейки из этих очередей в одну и пройтись еще раз по ней решателем.</li>
+<li>Легко отлаживается &ndash; сам алгоритм простой и занимает полстраницы
+кода, модули имеют минимум зависимостей и ясные интерфейсы (что
+позволяет их эфективно проверять с помощью unit тестов),</li>
+<li>Не имеет в своем составе холестерина</li>
+</ul>
+
+
+<h2>Недостатки</h2>
+
+<ul>
+<li>Скорость должна быть ниже, чем в случае рекурсивного
+решателя. Потому, что некоторые ячейки придется считать несколько раз.</li>
+<li>Этот алгоритм удобен только для пакетной обработки.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[watcom vs gcc]]></title>
+    <link href="http://odobenus.github.io/blog/2009/06/29/watcom-vs-gcc/"/>
+    <updated>2009-06-29T00:00:00+05:00</updated>
+    <id>http://odobenus.github.io/blog/2009/06/29/watcom-vs-gcc</id>
+    <content type="html"><![CDATA[<p>Для удовлетворения любопытства, скачал openwatcom 1.8 (такой бывший когда то
+известным компилятор c/c++), исходники под линукс. собрал, и попробовал
+тестовую задачку, <a href="http://shootout.alioth.debian.org/u32q/benchmark.php?test=binarytrees&amp;lang=gcc&amp;box=1">вот эту вот</a></p>
+
+<p>Резуьтаты:</p>
+
+<!-- more -->
+
+
+<p>GCC</p>
+
+<blockquote><p>walrus@home:/home/walrus/sandbox$ gcc btr.c -O3 -o btr_gcc -lm<br/>walrus@home:/home/walrus/sandbox$ time ./btr_gcc 20<br/>stretch tree of depth 21  check: -1<br/>2097152  trees of depth 4  check: -2097152<br/>524288 trees of depth 6  check: -524288<br/>131072  trees of depth 8  check: -131072<br/>32768  trees of depth 10  check: -32768<br/>8192  trees of depth 12  check: -8192<br/>2048  trees of depth 14  check: -2048<br/>512  trees of depth 16  check: -512<br/>128  trees of depth 18  check: -128<br/>32  trees of depth 20  check: -32<br/>long lived tree of depth 20  check: -1</p><p>real 1m2.138s<br/>user 1m1.852s<br/>sys 0m0.120s</p></blockquote>
+
+
+<p>Watcom</p>
+
+<blockquote><p>walrus@home:/home/walrus/sandbox$ PATH=$PATH:/opt/watcom/binl WATCOM=/opt/watcom owcc -I/opt/watcom/h  -O3 -obtr_wc  btr.c <br/>walrus@home:/home/walrus/sandbox$ time ./btr_wc 20<br/>stretch tree of depth 21  check: -1<br/>2097152  trees of depth 4  check: -2097152<br/>524288 trees of depth 6  check: -524288<br/>131072  trees of depth 8  check: -131072<br/>32768  trees of depth 10  check: -32768<br/>8192  trees of depth 12  check: -8192<br/>2048  trees of depth 14  check: -2048<br/>512  trees of depth 16  check: -512<br/>128  trees of depth 18  check: -128<br/>32  trees of depth 20  check: -32<br/>long lived tree of depth 20  check: -1</p><p>real 0m47.934s<br/>user 0m47.675s<br/>sys 0m0.136s</p></blockquote>
+
+
+<p>62 секунды против 48 в пользу watcom-а. Ай да старик watcom!! Вот это
+да!</p>
+
+<p><strong>UPD</strong>  Да, забыл &ndash; ubuntu 9.04 32 AMD, 4000+, gcc gcc версия 4.3.3 (Ubuntu 4.3.3-5ubuntu4), watcom :</p>
+
+<blockquote><p>owcc -v
+Open Watcom C/C++32 Compiler Driver Program Version 1.8beta1 LA
+Portions Copyright &copy; 1988-2002 Sybase, Inc. All Rights Reserved.
+Source code is available under the Sybase Open Watcom Public License.
+See <a href="http://www.openwatcom.org/">http://www.openwatcom.org/</a> for details.</p></blockquote>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[couchdb benchmark II]]></title>
+    <link href="http://odobenus.github.io/blog/2008/09/05/couchdb-benchmark-ii/"/>
+    <updated>2008-09-05T00:00:00+05:00</updated>
+    <id>http://odobenus.github.io/blog/2008/09/05/couchdb-benchmark-ii</id>
+    <content type="html"><![CDATA[<p>Однако не все так плохо..</p>
+
+<p>Если запустить 50 программ, каждая из которых пытается вставить по 200 записей
+(те же 10000 записей, что и в прошлом тесте), то вставка всех записей
+укладывается в 220 сек. Значит &ndash; суммарно скорость вставки при 50 процессах &ndash;
+45 записей в секунду.</p>
+
+<p>Кстати &ndash; база couchdb с 10000 записями (структура в предыдущем сообшении блога) занимает 54.3M.</p>
+
+<p>На компьютере Intel 3.2GHz, RAM 1G, ubuntu 8.04</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[couchdb benchmark еще раз]]></title>
+    <link href="http://odobenus.github.io/blog/2008/09/05/couchdb-benchmark/"/>
+    <updated>2008-09-05T00:00:00+05:00</updated>
+    <id>http://odobenus.github.io/blog/2008/09/05/couchdb-benchmark</id>
+    <content type="html"><![CDATA[<p>Попробоавл тот же тест, но 10 процессов по 10000 записей. Суммарные цифры &ndash;
+100_000 записей за 2308 сек. То есть 43 записи/сек. Примерно так же как и в
+прошлом тесте. Похоже, быстрее уде не разогнать.</p>
+
+<p>Размер базы при 100000 записях &ndash; 0.6G</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[couchdb benchmark]]></title>
+    <link href="http://odobenus.github.io/blog/2008/09/04/couchdb-benchmark/"/>
+    <updated>2008-09-04T00:00:00+05:00</updated>
+    <id>http://odobenus.github.io/blog/2008/09/04/couchdb-benchmark</id>
+    <content type="html"><![CDATA[<p>Захотелось попробовать новую couchdb. Выглядит она хорошо, и все
+сделано удобно. Однако прежде чем ее использовать в каком-нибудь
+проекте, хотелось бы оценит ее возможности более точно.</p>
+
+<p>Прежде всего посмотрим скорострельность.  Для этого напишем мелкую
+программу на питоне, которая вставляет ну.. 10000 записей. и пусть
+пишет сколько секунд прошло с начала теста.</p>
+
+<!-- more -->
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="kn">from</span> <span class="nn">couchdb</span> <span class="kn">import</span> <span class="n">Server</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">time</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">server</span> <span class="o">=</span> <span class="n">Server</span><span class="p">(</span><span class="s">&#39;http://localhost:5984/&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="k">del</span> <span class="n">server</span><span class="p">[</span><span class="s">&#39;benchmark&#39;</span><span class="p">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">db</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s">&#39;benchmark&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="n">benchstart</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+</span><span class='line'><span class="k">print</span> <span class="s">&quot;Begin test </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="n">benchstart</span>
+</span><span class='line'><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10000</span><span class="p">):</span>
+</span><span class='line'>    <span class="n">doc_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">create</span><span class="p">({</span><span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="s">&#39;BenchRecord&#39;</span><span class="p">,</span> <span class="s">&#39;intfld&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s">&#39;charfld&#39;</span><span class="p">:</span> <span class="s">&#39;SomeName</span><span class="si">%s</span><span class="s">&#39;</span><span class="o">%</span><span class="n">i</span> <span class="p">})</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span class='line'><span class="c">#        print &quot;%s :: %s &quot;%(datetime.datetime.today(),i)</span>
+</span><span class='line'>         <span class="n">bench_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">-</span> <span class="n">benchstart</span>
+</span><span class='line'>         <span class="k">print</span> <span class="s">&quot;</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="s"> &quot;</span><span class="o">%</span><span class="p">(</span><span class="n">bench_offset</span><span class="p">,</span><span class="n">i</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">print</span> <span class="s">&quot;End test, </span><span class="si">%d</span><span class="s"> sec&quot;</span><span class="o">%</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">-</span> <span class="n">benchstart</span><span class="p">)</span>
+</span><span class='line'><span class="k">del</span> <span class="n">server</span><span class="p">[</span><span class="s">&#39;benchmark&#39;</span><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Запускаем &ndash; получили в результате:</p>
+
+<blockquote><p>Begin test 1220531930<br/>6 100 <br/>11 200 <br/>17 300 <br/>23 400 <br/>29 500 <br/>35 600 <br/>40 700 <br/>46 800 <br/>52 900 <br/>58 1000 <br/>64 1100 <br/>70 1200 <br/>76 1300 <br/>82 1400 <br/>87 1500 <br/>93 1600 <br/>99 1700 <br/>105 1800 <br/>111 1900 <br/>117 2000 <br/>123 2100 <br/>129 2200 <br/>135 2300 <br/>140 2400 <br/>146 2500 <br/>152 2600 <br/>158 2700 <br/>164 2800 <br/>170 2900 <br/>176 3000 <br/>182 3100 <br/>188 3200 <br/>194 3300 <br/>200 3400 <br/>206 3500 <br/>212 3600 <br/>218 3700 <br/>224 3800 <br/>229 3900 <br/>235 4000 <br/>241 4100 <br/>247 4200 <br/>254 4300 <br/>260 4400 <br/>266 4500 <br/>272 4600 <br/>278 4700 <br/>284 4800 <br/>290 4900 <br/>296 5000 <br/>302 5100 <br/>309 5200 <br/>315 5300 <br/>321 5400 <br/>327 5500 <br/>333 5600 <br/>339 5700 <br/>345 5800 <br/>351 5900 <br/>357 6000 <br/>363 6100 <br/>369 6200 <br/>376 6300 <br/>382 6400 <br/>388 6500 <br/>394 6600 <br/>400 6700 <br/>406 6800 <br/>412 6900 <br/>418 7000 <br/>424 7100 <br/>430 7200 <br/>436 7300 <br/>442 7400 <br/>448 7500 <br/>454 7600 <br/>460 7700 <br/>466 7800 <br/>472 7900 <br/>478 8000 <br/>484 8100 <br/>490 8200 <br/>496 8300 <br/>502 8400 <br/>508 8500 <br/>514 8600 <br/>520 8700 <br/>526 8800 <br/>532 8900 <br/>538 9000 <br/>544 9100 <br/>550 9200 <br/>556 9300 <br/>562 9400 <br/>568 9500 <br/>574 9600 <br/>580 9700 <br/>587 9800 <br/>593 9900 <br/>End test, 599 sec</p></blockquote>
+
+
+<p>Отсюда мораль.</p>
+
+<ol>
+<li>Вставка 100 записей за (в  среднем) 6 секунд. Немного. 16 записей/сек</li>
+<li>достаточно линейно , в диапазоне до 10000 записей.</li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Превращение]]></title>
+    <link href="http://odobenus.github.io/blog/2008/08/16/turnout/"/>
+    <updated>2008-08-16T00:00:00+05:00</updated>
+    <id>http://odobenus.github.io/blog/2008/08/16/turnout</id>
+    <content type="html"><![CDATA[<p><embed src="http://www.myheritagefiles.com/video/L/28/nsxi84_7016384a8d6a84wpi7kt84" width="340" height="340" type="application/x-shockwave-flash" wmode="transparent"/></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Марк Твен]]></title>
+    <link href="http://odobenus.github.io/blog/2008/06/22/mark-twain/"/>
+    <updated>2008-06-22T00:00:00+05:00</updated>
+    <id>http://odobenus.github.io/blog/2008/06/22/mark-twain</id>
+    <content type="html"><![CDATA[<blockquote><p>&ldquo;Если вам понадобится подвергнуть молодого человека тяжелому и мучительному
+наказанию, возьмите с него слово, что он в течение года будет вести дневник.&rdquo;</p></blockquote>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[erlang & postgresql auth]]></title>
+    <link href="http://odobenus.github.io/blog/2008/06/06/erlang-postgresql-auth/"/>
+    <updated>2008-06-06T00:00:00+05:00</updated>
+    <id>http://odobenus.github.io/blog/2008/06/06/erlang-postgresql-auth</id>
+    <content type="html"><![CDATA[<p>Для прямого доступа из эрланга в postgresql (минуя odbc) есть хорошая библиотечка, написанная  Martin Carlsson из Erlang Training &amp; Consulting ltd
+<a href="http://erlang-consulting.com/aboutus/opensource.html">Здесь</a>.</p>
+
+<p>У нее есть один недостаток &ndash; она рассчитана только на md5  authentication в постгресе.</p>
+
+<p>Если приложение разрабатывается с нуля, то md5 auth &ndash; не представляет проблемы, как захотим, так и настроим, но в нашем случае уже есть
+большой и толстый postgresql сервер, со своими админами и правилами выделения учетных записей. В этом сервере метод доступа у большинства аккаунтов &ndash;
+password. И никак это не поправишь. В отличие от технических проблем &ndash; административные проблемы плохо поддаются решению..</p>
+
+<p>Пришлось прочитать хорошенько документацию postgresql, раздел где описан протокол, и поправить erlang-овскую библиотеку.
+Вот, чтобы не забыть, что я там наисправлял, и<br/>
+выкладываю diff</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='diff'><span class='line'><span class="gh">diff -Naur oldsrc/psql_logic.erl src/psql_logic.erl</span>
+</span><span class='line'><span class="gd">--- oldsrc/psql_logic.erl       2006-09-18 17:46:20.000000000 +0200</span>
+</span><span class='line'><span class="gi">+++ src/psql_logic.erl  2008-03-12 17:41:48.000000000 +0100</span>
+</span><span class='line'><span class="gu">@@ -139,6 +139,12 @@</span>
+</span><span class='line'>     AuthDigest = psql_protocol:md5digest(State#state.digest, Salt),
+</span><span class='line'>     psql_connection:command(State#state.connection, {send, AuthDigest}),
+</span><span class='line'>     {next_state, authentication, State};
+</span><span class='line'><span class="gi">+</span>
+</span><span class='line'><span class="gi">+authentication({psql, authentication, &lt;&lt;0,0,0,3&gt;&gt;}, State) -&gt;</span>
+</span><span class='line'><span class="gi">+    CTPassw = psql_protocol:ctpasswd(State#state.password),</span>
+</span><span class='line'><span class="gi">+    psql_connection:command(State#state.connection, {send, CTPassw}),</span>
+</span><span class='line'><span class="gi">+    {next_state, authentication, State};</span>
+</span><span class='line'><span class="gi">+</span>
+</span><span class='line'>authentication({psql, authentication, &lt;&lt;0,0,0,0&gt;&gt;}, State) -&gt;
+</span><span class='line'>     {next_state, setup, State};
+</span><span class='line'>authentication({psql, error, Error}, State) -&gt;
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='diff'><span class='line'><span class="gd">--- oldsrc/psql_protocol.erl    2006-09-18 17:46:24.000000000 +0200</span>
+</span><span class='line'><span class="gi">+++ src/psql_protocol.erl       2008-03-12 17:41:31.000000000 +0100</span>
+</span><span class='line'><span class="gu">@@ -21,7 +21,7 @@</span>
+</span><span class='line'>         to_string/1]).
+</span><span class='line'>
+</span><span class='line'> -export([authenticate/4,
+</span><span class='line'><span class="gd">-        md5digest/2,</span>
+</span><span class='line'><span class="gi">+        md5digest/2,ctpasswd/1,</span>
+</span><span class='line'>         copy_done/0,
+</span><span class='line'>         q/1]).
+</span><span class='line'>
+</span><span class='line'><span class="gu">@@ -65,6 +65,9 @@</span>
+</span><span class='line'>     Auth = md5([Digest, Salt]),
+</span><span class='line'>     {password_message, &lt;&lt;&quot;md5&quot;, Auth/binary, 0:8&gt;&gt;}.
+</span><span class='line'>
+</span><span class='line'><span class="gi">+ctpasswd(Passw) -&gt;</span>
+</span><span class='line'><span class="gi">+    PB = list_to_binary(Passw),</span>
+</span><span class='line'><span class="gi">+    {password_message, &lt;&lt; PB/binary,0:8 &gt;&gt;}.</span>
+</span><span class='line'><span class="gi">+</span>
+</span><span class='line'>copy_done() -&gt;
+</span><span class='line'>     {&#39;copy_done&#39;, []}.
+</span></code></pre></td></tr></table></div></figure>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[erlang snmp client]]></title>
+    <link href="http://odobenus.github.io/blog/2008/03/11/erlang-snmp-client/"/>
+    <updated>2008-03-11T00:00:00+04:00</updated>
+    <id>http://odobenus.github.io/blog/2008/03/11/erlang-snmp-client</id>
+    <content type="html"><![CDATA[<p>Вот понадобилось опрашивать некоторые железные switch через snmp из erlang.
+Первая попытка понять что для этого нужна (наскоком, по Буденновски) &ndash; не удалась. На erlang.org полно документации
+как писать и управлять snmp сервера, но вот информация по клиентам &ndash; разбросана по крупицам.</p>
+
+<!-- more -->
+
+
+<p></p>
+
+<p>Так что пришлось собраться и создать картину у себя в голове, как должен выглядить snmp клиент.</p>
+
+<h2>Общая картина</h2>
+
+<p><img src="http://odobenus.github.io/images/snmp_blog.png"></p>
+
+<p>Общая идея такая. Нет одной такой командочки типа snmpwalk. Мы вынуждены строить целую систему для того чтобы опросить
+железку.</p>
+
+<p>Есть snmp manager, мы его должны настроить и запустить, даже если у нас только клиент. Этот snmp manager содержит
+список snmp user. Я сначала думал что snmp user &ndash; это что-то типа community, оказалось &ndash; нет.. Snmp user в erlang &ndash;
+это такой <em>модуль</em>, который содержит просто набор callback для приема ответов от устройств.</p>
+
+<p>Manager должен либо определять этого user-а в свой конфигурации, либо зарегистрировать его с помощью
+<code>snmpm:register_user(имя, модуль).</code></p>
+
+<p>Дальше нам нужны agents. То есть manager каждому такому user назначает (в конфиге, либо с помощью <code>snmpm:register_agent</code> )
+набор агентов которых опрашивать. Вот эти агенты как раз и содержат реквизиты опрашиваемых железок. Там, IP, community, port,
+версию протокола и т.д.</p>
+
+<p>Когда все это настроено, можно посылать из manager-а запрос. Например с помощью <code>snmpm:ag()</code>. Manager поищет в настройках который это агент(по адресу).
+Пошлет асинхронный запрос на железку, а когда придет ответ, Manager по привязанным user/agent, сообразит на которого
+user (ну грубо говоря в какой модуль) его переслать.</p>
+
+<p>В данном случает придет ответ на <code>handle_pdu(Addr, Port, ReqId, SnmpResponse, UserData)</code> в том user-е к которому привязан  агент, куда посылался запрос.</p>
+
+<p>В следующих постах приведу примеры кода.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Performance degradation for gcc]]></title>
+    <link href="http://odobenus.github.io/blog/2008/02/29/performance-degradation-for-gcc/"/>
+    <updated>2008-02-29T00:00:00+04:00</updated>
+    <id>http://odobenus.github.io/blog/2008/02/29/performance-degradation-for-gcc</id>
+    <content type="html"><![CDATA[<p>Просмативая свои старые архивы, нашел мелкую программу sieve &ndash; решето
+Эратосфена, которая была написана на разных языках. И там же валялся бинарник
+этой программы, скомпилированной gcc в далеком (по моему 2002) году. Запустил
+из интереса &ndash; получилось</p>
+
+<!-- more -->
+
+
+<blockquote><p>103763 iterations in 10.000000 seconds.</p></blockquote>
+
+<p>Скомпилировал текущей версией gcc из ubuntu &ndash; получилось</p>
+
+<blockquote><p>96992 iterations in 10.000000 seconds</p></blockquote>
+
+<p>Вот тебе бабушка и Юрьев день! Какой был в 2002 gcc не помню, file a.out покзывает</p>
+
+<blockquote><p>a.out: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), for GNU/Linux 2.0.0,
+ dynamically linked (uses shared libs), not stripped</p></blockquote>
+
+<p>Теперь у нас gcc version 4.1.3 20070929 (prerelease) (Ubuntu 4.1.2-16ubuntu2), file
+показывает</p>
+
+<blockquote><p>a.out: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), for GNU/Linux 2.6.8,
+ dynamically linked (uses shared libs), not stripped</p></blockquote>
+
+<p>То есть все честно.. Но медленнее..</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Standalone connection pool]]></title>
+    <link href="http://odobenus.github.io/blog/2008/02/08/standalone-connection-pool/"/>
+    <updated>2008-02-08T00:00:00+04:00</updated>
+    <id>http://odobenus.github.io/blog/2008/02/08/standalone-connection-pool</id>
+    <content type="html"><![CDATA[<p>В одном из проектов на яве мне понадобился connection pool, без него
+соединения с базой получались слишком частые.  После определенного
+поиска обнаружил DBCP от apache и
+<a href="http://forum.vingrad.ru/sources/topic-157958.html">статью на винграде</a></p>
+
+<p>DBCP мне не очень понравился, дело вкуса, конечно, но слишком много
+зависимостей. Да и тяжеловат он для мелкого проекта. Vingrad-овский
+connection pool &ndash; делает немного не то что хотелось кэширует
+statements.. И отсутствует обработка случаев, когда, к примеру база
+умрет (на время)..</p>
+
+<p>Критика без конкретных предложений &ndash; критиканство. Так что взял и
+написал как нравится самому. Вот что получилось:</p>
+
+<!-- more -->
+
+
+<h2>Итак. Общая идея</h2>
+
+<p>Программа использует connection pool по шаблону:</p>
+
+<p>Инициализация:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'> <span class="n">ConnectionPool</span> <span class="n">pool</span> <span class="o">=</span> <span class="n">ConnectionPool</span><span class="o">.</span><span class="na">getInstance</span><span class="o">();</span>
+</span><span class='line'> <span class="n">pool</span><span class="o">.</span><span class="na">setUsername</span><span class="o">(</span><span class="s">&quot;user1&quot;</span><span class="o">);&lt;</span><span class="n">br</span> <span class="o">/&gt;</span> <span class="n">pool</span><span class="o">.</span><span class="na">setPassword</span><span class="o">(</span><span class="s">&quot;bebebe&quot;</span><span class="o">);</span>
+</span><span class='line'> <span class="n">pool</span><span class="o">.</span><span class="na">setPath</span><span class="o">(</span><span class="s">&quot;jdbc:postgresql://hostname/main&quot;</span><span class="o">);</span>
+</span><span class='line'> <span class="n">pool</span><span class="o">.</span><span class="na">setClassName</span><span class="o">(</span><span class="s">&quot;org.postgresql.Driver&quot;</span><span class="o">);</span>
+</span><span class='line'> <span class="n">pool</span><span class="o">.</span><span class="na">setPoolsize</span><span class="o">(</span><span class="mi">5</span><span class="o">);</span> <span class="c1">// держать 5 коннекций </span>
+</span><span class='line'> <span class="k">if</span> <span class="o">(!</span> <span class="n">pool</span><span class="o">.</span><span class="na">init</span><span class="o">()</span> <span class="o">)</span> <span class="n">System</span><span class="o">.</span><span class="na">exit</span><span class="o">(</span><span class="mi">100</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Тут все просто, берем экземпляр connectionpool-а (проект небольшой,
+так что оформим его в виде <em>singleton</em>, устанавливаем параметры, и
+если не удалось инициализировать, то не судьба и программу
+выполнять&hellip;</p>
+
+<p>И дальше, в том месте где используется соединение, что-то вроде:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="n">Connection</span> <span class="n">dbconnection</span> <span class="o">=</span> <span class="n">ConnectionPool</span><span class="o">.</span><span class="na">getConnection</span><span class="o">();</span>
+</span><span class='line'>   <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>         <span class="o">....</span>
+</span><span class='line'>   <span class="o">}</span>
+</span><span class='line'><span class="n">finaly</span>
+</span><span class='line'>   <span class="o">{</span>
+</span><span class='line'>       <span class="n">ConnectionPool</span><span class="o">.</span><span class="na">releaseConnection</span><span class="o">(</span><span class="n">dbconnection</span><span class="o">);</span>
+</span><span class='line'>   <span class="o">}</span>
+</span><span class='line'>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>   Тут, если посмотреть, то connection берется не из экземпляра
+connection pool, а из статического метода в классе. И таким же образом
+отдается.  Если у нас connection pool в виде singleton &ndash; зачем
+переливать из пустого в порожнее, брать по очереди connection pool и
+затем из него connection? Взять экземпляр connection pool я могу и сам
+в статическом методе. Мелочь, но писать программы проще&hellip;</p>
+
+<h2>Как это все реализoвано.</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+<span class='line-number'>149</span>
+<span class='line-number'>150</span>
+<span class='line-number'>151</span>
+<span class='line-number'>152</span>
+<span class='line-number'>153</span>
+<span class='line-number'>154</span>
+<span class='line-number'>155</span>
+<span class='line-number'>156</span>
+<span class='line-number'>157</span>
+<span class='line-number'>158</span>
+<span class='line-number'>159</span>
+<span class='line-number'>160</span>
+<span class='line-number'>161</span>
+<span class='line-number'>162</span>
+<span class='line-number'>163</span>
+<span class='line-number'>164</span>
+<span class='line-number'>165</span>
+<span class='line-number'>166</span>
+<span class='line-number'>167</span>
+<span class='line-number'>168</span>
+<span class='line-number'>169</span>
+<span class='line-number'>170</span>
+<span class='line-number'>171</span>
+<span class='line-number'>172</span>
+<span class='line-number'>173</span>
+<span class='line-number'>174</span>
+<span class='line-number'>175</span>
+<span class='line-number'>176</span>
+<span class='line-number'>177</span>
+<span class='line-number'>178</span>
+<span class='line-number'>179</span>
+<span class='line-number'>180</span>
+<span class='line-number'>181</span>
+<span class='line-number'>182</span>
+<span class='line-number'>183</span>
+<span class='line-number'>184</span>
+<span class='line-number'>185</span>
+<span class='line-number'>186</span>
+<span class='line-number'>187</span>
+<span class='line-number'>188</span>
+<span class='line-number'>189</span>
+<span class='line-number'>190</span>
+<span class='line-number'>191</span>
+<span class='line-number'>192</span>
+<span class='line-number'>193</span>
+<span class='line-number'>194</span>
+<span class='line-number'>195</span>
+<span class='line-number'>196</span>
+<span class='line-number'>197</span>
+<span class='line-number'>198</span>
+<span class='line-number'>199</span>
+<span class='line-number'>200</span>
+<span class='line-number'>201</span>
+<span class='line-number'>202</span>
+<span class='line-number'>203</span>
+<span class='line-number'>204</span>
+<span class='line-number'>205</span>
+<span class='line-number'>206</span>
+<span class='line-number'>207</span>
+<span class='line-number'>208</span>
+<span class='line-number'>209</span>
+<span class='line-number'>210</span>
+<span class='line-number'>211</span>
+<span class='line-number'>212</span>
+<span class='line-number'>213</span>
+<span class='line-number'>214</span>
+<span class='line-number'>215</span>
+<span class='line-number'>216</span>
+<span class='line-number'>217</span>
+<span class='line-number'>218</span>
+<span class='line-number'>219</span>
+<span class='line-number'>220</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kn">import</span> <span class="nn">java.sql.Connection</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">java.util.Queue</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">java.util.concurrent.ConcurrentLinkedQueue</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">java.util.logging.Logger</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ConnectionPool</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kd">private</span> <span class="kd">static</span> <span class="n">ConnectionPool</span> <span class="n">instance</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="nf">ConnectionPool</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">connections</span> <span class="o">=</span>  <span class="k">new</span> <span class="n">ConcurrentLinkedQueue</span><span class="o">&lt;</span><span class="n">connection</span><span class="o">&gt;();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">static</span> <span class="n">ConnectionPool</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">instance</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="n">instance</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ConnectionPool</span><span class="o">();</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">instance</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">static</span> <span class="n">Connection</span> <span class="nf">getConnection</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nf">getInstance</span><span class="o">().</span><span class="na">getInstanceConnection</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">releaseConnection</span><span class="o">(</span><span class="n">Connection</span> <span class="n">c</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">getInstance</span><span class="o">().</span><span class="na">releaseInstanceConnection</span><span class="o">(</span><span class="n">c</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/**</span>
+</span><span class='line'><span class="cm"> * Выделить соединение из пула.</span>
+</span><span class='line'><span class="cm"> * логика такая:</span>
+</span><span class='line'><span class="cm"> * если не пустой - взять соединение из пула, проверить на валидность</span>
+</span><span class='line'><span class="cm"> * и вернуть. невалидные соединения сразу убиваем.</span>
+</span><span class='line'><span class="cm"> * если пул пустой - сделать новое соединение и вернуть его. Если не смогли</span>
+</span><span class='line'><span class="cm"> * сделать новое соединение (типа DB сервер умер) - просто жалуемся в лог     </span>
+</span><span class='line'><span class="cm"> * и возвращаем null</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">Connection</span> <span class="nf">getInstanceConnection</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(!</span> <span class="n">alreadyInitialized</span><span class="o">){</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;improper using of db pool (getConnection without init)&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">};</span>
+</span><span class='line'>        <span class="n">Connection</span> <span class="n">currentConnection</span><span class="o">;</span>
+</span><span class='line'>        <span class="k">do</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">currentConnection</span> <span class="o">=</span> <span class="n">connections</span><span class="o">.</span><span class="na">poll</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="k">if</span> <span class="o">(</span><span class="n">currentConnection</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="k">break</span><span class="o">;</span> <span class="c1">//пустой пул</span>
+</span><span class='line'>              <span class="c1">//  если дохлое соединение - не будем его использовать</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">(!</span> <span class="n">validConnection</span><span class="o">(</span><span class="n">currentConnection</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>                <span class="n">currentConnection</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">while</span> <span class="o">(</span><span class="n">currentConnection</span> <span class="o">==</span> <span class="kc">null</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">try</span><span class="o">{</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">(</span><span class="n">connections</span><span class="o">.</span><span class="na">size</span><span class="o">()</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                <span class="n">log</span><span class="o">.</span><span class="na">info</span><span class="o">(</span><span class="s">&quot;DB Pool depleted, add new connection&quot;</span><span class="o">);</span>
+</span><span class='line'>                <span class="n">connections</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">java</span><span class="o">.</span><span class="na">sql</span><span class="o">.</span><span class="na">DriverManager</span><span class="o">.</span><span class="na">getConnection</span><span class="o">(</span><span class="n">path</span><span class="o">,</span> <span class="n">userName</span><span class="o">,</span><span class="n">password</span><span class="o">));</span>
+</span><span class='line'>                <span class="n">currentConnection</span> <span class="o">=</span> <span class="n">connections</span><span class="o">.</span><span class="na">poll</span><span class="o">();</span>
+</span><span class='line'>                <span class="k">if</span> <span class="o">(!</span> <span class="n">validConnection</span><span class="o">(</span><span class="n">currentConnection</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="c1">// не судьба. Сдаемся</span>
+</span><span class='line'>                    <span class="k">throw</span> <span class="k">new</span> <span class="nf">Exception</span><span class="o">(</span><span class="s">&quot;new connection also is not valid&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>           <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">ie</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;cannot provide sql connection:&quot;</span><span class="o">+</span><span class="n">ie</span><span class="o">);</span>
+</span><span class='line'>            <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">};</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">currentConnection</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="kt">void</span>  <span class="nf">releaseInstanceConnection</span><span class="o">(</span><span class="n">Connection</span> <span class="n">c</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(!</span> <span class="n">alreadyInitialized</span><span class="o">){</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;improper using of db pool (releseConnection without init)&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="k">return</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">};</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">getCurrentSize</span><span class="o">()</span> <span class="o">&gt;=</span> <span class="n">getMaxPoolSize</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">try</span> <span class="o">{</span> <span class="n">c</span><span class="o">.</span><span class="na">close</span><span class="o">();</span> <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{};</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(!</span> <span class="n">validConnection</span><span class="o">(</span><span class="n">c</span><span class="o">)</span> <span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="c1">// Не будем возвращать в пул дохлое соединение</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">connections</span><span class="o">.</span><span class="na">offer</span><span class="o">(</span><span class="n">c</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="kt">int</span> <span class="n">maxPoolSize</span> <span class="o">=</span> <span class="mi">5</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">int</span>
+</span><span class='line'>        <span class="nf">getMaxPoolSize</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">maxPoolSize</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setPoolsize</span><span class="o">(</span><span class="kt">int</span> <span class="n">maxPoolSize</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(!</span><span class="n">alreadyInitialized</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">this</span><span class="o">.</span><span class="na">maxPoolSize</span> <span class="o">=</span> <span class="n">maxPoolSize</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;setPoolsize after init. ignoring&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">getCurrentSize</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">connections</span><span class="o">.</span><span class="na">size</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">String</span> <span class="n">userName</span><span class="o">;</span>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">String</span> <span class="n">password</span><span class="o">;</span>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">String</span> <span class="n">path</span><span class="o">;</span>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">String</span> <span class="n">className</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="n">String</span> <span class="nf">getUserName</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">userName</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setUsername</span><span class="o">(</span><span class="n">String</span> <span class="n">userName</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(!</span><span class="n">alreadyInitialized</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">this</span><span class="o">.</span><span class="na">userName</span> <span class="o">=</span> <span class="n">userName</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;setUserName after init. ignoring&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="n">String</span> <span class="nf">getPassword</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">password</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setPassword</span><span class="o">(</span><span class="n">String</span> <span class="n">password</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(!</span><span class="n">alreadyInitialized</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">this</span><span class="o">.</span><span class="na">password</span> <span class="o">=</span> <span class="n">password</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;setPassword after init. ignoring&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="n">String</span> <span class="nf">getPath</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">path</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setPath</span><span class="o">(</span><span class="n">String</span> <span class="n">path</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(!</span><span class="n">alreadyInitialized</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">this</span><span class="o">.</span><span class="na">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;Path after init. ignoring&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="n">String</span> <span class="nf">getClassName</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">className</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setClassName</span><span class="o">(</span><span class="n">String</span> <span class="n">className</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(!</span><span class="n">alreadyInitialized</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">this</span><span class="o">.</span><span class="na">className</span> <span class="o">=</span> <span class="n">className</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;setClassName after init. ignoring&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * init - Инициализация  пула сообщений</span>
+</span><span class='line'><span class="cm">     * @return boolean - успешно ли инициализирован пул (true - все хорошо)</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">boolean</span> <span class="nf">init</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">log</span><span class="o">.</span><span class="na">entering</span><span class="o">(</span><span class="s">&quot;ConnectionPool&quot;</span><span class="o">,</span><span class="s">&quot;init&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">(</span><span class="n">alreadyInitialized</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                <span class="k">throw</span> <span class="k">new</span>  <span class="nf">Exception</span><span class="o">(</span><span class="s">&quot;Double init of db pool&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="n">Class</span><span class="o">.</span><span class="na">forName</span><span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="na">className</span><span class="o">);</span>
+</span><span class='line'>            <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="o">;</span> <span class="n">i</span><span class="o">&lt;=</span><span class="mi">5</span><span class="o">;</span> <span class="n">i</span><span class="o">++){</span>
+</span><span class='line'>                <span class="n">connections</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">java</span><span class="o">.</span><span class="na">sql</span><span class="o">.</span><span class="na">DriverManager</span>
+</span><span class='line'>                                <span class="o">.</span><span class="na">getConnection</span><span class="o">(</span><span class="n">path</span><span class="o">,</span> <span class="n">userName</span><span class="o">,</span><span class="n">password</span><span class="o">));</span>
+</span><span class='line'>                  <span class="o">};</span>
+</span><span class='line'>            <span class="n">alreadyInitialized</span> <span class="o">=</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">exiting</span><span class="o">(</span><span class="s">&quot;ConnectionPool&quot;</span><span class="o">,</span><span class="s">&quot;init&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="na">severe</span><span class="o">(</span><span class="s">&quot;Cannot init db pool:&quot;</span><span class="o">+</span><span class="n">e</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">log</span><span class="o">.</span><span class="na">exiting</span><span class="o">(</span><span class="s">&quot;ConnectionPool&quot;</span><span class="o">,</span><span class="s">&quot;init&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="kd">static</span> <span class="n">Logger</span> <span class="n">log</span> <span class="o">=</span> <span class="n">Logger</span><span class="o">.</span><span class="na">getLogger</span><span class="o">(</span><span class="s">&quot;dbpool&quot;</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     *   Хранилище для коннекций</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">ConcurrentLinkedQueue</span><span class="o">&lt;</span><span class="n">connection</span><span class="o">&gt;</span> <span class="n">connections</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * переменная предотвращающая двойную инициализацию DB pool</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="kd">private</span> <span class="kt">boolean</span> <span class="n">alreadyInitialized</span> <span class="o">=</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * Проверка что соединение до сих пор живо. Если есть проблемы, мы его</span>
+</span><span class='line'><span class="cm">     * просто убьем</span>
+</span><span class='line'><span class="cm">     *</span>
+</span><span class='line'><span class="cm">     *  Проверяем просто делая setAutoCommit. Если никаких exceptions</span>
+</span><span class='line'><span class="cm">     *  не последовало, считаем что все в порядке.</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="kt">boolean</span> <span class="nf">validConnection</span><span class="o">(</span><span class="n">java</span><span class="o">.</span><span class="na">sql</span><span class="o">.</span><span class="na">Connection</span> <span class="n">c</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>            <span class="kt">boolean</span> <span class="n">status</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="na">getAutoCommit</span><span class="o">();</span>
+</span><span class='line'>            <span class="n">c</span><span class="o">.</span><span class="na">setAutoCommit</span><span class="o">(!</span> <span class="n">status</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">c</span><span class="o">.</span><span class="na">setAutoCommit</span><span class="o">(</span><span class="n">status</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">e</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">{</span>
+</span><span class='line'>                <span class="k">try</span> <span class="o">{</span> <span class="n">c</span><span class="o">.</span><span class="na">close</span><span class="o">();</span> <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">notImportant</span><span class="o">)</span> <span class="o">{};</span>
+</span><span class='line'>                <span class="n">log</span><span class="o">.</span><span class="na">info</span><span class="o">(</span><span class="s">&quot;Dead sql connection detected&quot;</span><span class="o">);</span>
+</span><span class='line'>                <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p></p>
+
+<p>Несколько попутных замечаний: Держится 5 соединений (по умолчанию, может быть
+изменено в setPoolsize() ), если программа просит <em>больше</em> соединений, будут
+устанавливаться новые соединения с базой. Просто они будут закрываться, когда в
+них пропадет нужда.  Так что poolsize &ndash; это сколько соединений будет повторно
+использоваться.</p>
+]]></content>
+  </entry>
+  
+</feed>

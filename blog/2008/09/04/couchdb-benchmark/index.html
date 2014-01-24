@@ -1,0 +1,363 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>couchdb benchmark - Досрочно завершим!</title>
+  <meta name="author" content="Alexey Kishkin">
+
+  
+  <meta name="description" content="Захотелось попробовать новую couchdb. Выглядит она хорошо, и все
+сделано удобно. Однако прежде чем ее использовать в каком-нибудь
+проекте, хотелось &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://odobenus.github.io/blog/2008/09/04/couchdb-benchmark">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Досрочно завершим!" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2233393-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Досрочно завершим!</a></h1>
+  
+    <h2>Статическая версия.</h2>
+  
+</hgroup>
+
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+   (function (d, w, c) {
+    (w[c] = w[c] || []).push(function() {
+       try {
+       w.yaCounter21140866 = new Ya.Metrika({id:21140866,
+          clickmap:true,
+          trackLinks:true,
+          accurateTrackBounce:true});
+       } catch(e) { }
+       });
+
+    var n = d.getElementsByTagName("script")[0],
+    s = d.createElement("script"),
+    f = function () { n.parentNode.insertBefore(s, n); };
+    s.type = "text/javascript";
+    s.async = true;
+    s.src = (d.location.protocol == "https:" ? "https:" : "http:") + "//mc.yandex.ru/metrika/watch.js";
+
+    if (w.opera == "[object Opera]") {
+    d.addEventListener("DOMContentLoaded", f, false);
+    } else { f(); }
+    })(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="//mc.yandex.ru/watch/21140866" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:odobenus.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Couchdb Benchmark</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2008-09-04T00:00:00+05:00" pubdate data-updated="true">Sep 4<span>th</span>, 2008</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Захотелось попробовать новую couchdb. Выглядит она хорошо, и все
+сделано удобно. Однако прежде чем ее использовать в каком-нибудь
+проекте, хотелось бы оценит ее возможности более точно.</p>
+
+<p>Прежде всего посмотрим скорострельность.  Для этого напишем мелкую
+программу на питоне, которая вставляет ну.. 10000 записей. и пусть
+пишет сколько секунд прошло с начала теста.</p>
+
+<!-- more -->
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="kn">from</span> <span class="nn">couchdb</span> <span class="kn">import</span> <span class="n">Server</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">time</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">server</span> <span class="o">=</span> <span class="n">Server</span><span class="p">(</span><span class="s">&#39;http://localhost:5984/&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="k">del</span> <span class="n">server</span><span class="p">[</span><span class="s">&#39;benchmark&#39;</span><span class="p">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">db</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s">&#39;benchmark&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="n">benchstart</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+</span><span class='line'><span class="k">print</span> <span class="s">&quot;Begin test </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="n">benchstart</span>
+</span><span class='line'><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10000</span><span class="p">):</span>
+</span><span class='line'>    <span class="n">doc_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">create</span><span class="p">({</span><span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="s">&#39;BenchRecord&#39;</span><span class="p">,</span> <span class="s">&#39;intfld&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s">&#39;charfld&#39;</span><span class="p">:</span> <span class="s">&#39;SomeName</span><span class="si">%s</span><span class="s">&#39;</span><span class="o">%</span><span class="n">i</span> <span class="p">})</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span class='line'><span class="c">#        print &quot;%s :: %s &quot;%(datetime.datetime.today(),i)</span>
+</span><span class='line'>         <span class="n">bench_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">-</span> <span class="n">benchstart</span>
+</span><span class='line'>         <span class="k">print</span> <span class="s">&quot;</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="s"> &quot;</span><span class="o">%</span><span class="p">(</span><span class="n">bench_offset</span><span class="p">,</span><span class="n">i</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">print</span> <span class="s">&quot;End test, </span><span class="si">%d</span><span class="s"> sec&quot;</span><span class="o">%</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">-</span> <span class="n">benchstart</span><span class="p">)</span>
+</span><span class='line'><span class="k">del</span> <span class="n">server</span><span class="p">[</span><span class="s">&#39;benchmark&#39;</span><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Запускаем &ndash; получили в результате:</p>
+
+<blockquote><p>Begin test 1220531930<br/>6 100 <br/>11 200 <br/>17 300 <br/>23 400 <br/>29 500 <br/>35 600 <br/>40 700 <br/>46 800 <br/>52 900 <br/>58 1000 <br/>64 1100 <br/>70 1200 <br/>76 1300 <br/>82 1400 <br/>87 1500 <br/>93 1600 <br/>99 1700 <br/>105 1800 <br/>111 1900 <br/>117 2000 <br/>123 2100 <br/>129 2200 <br/>135 2300 <br/>140 2400 <br/>146 2500 <br/>152 2600 <br/>158 2700 <br/>164 2800 <br/>170 2900 <br/>176 3000 <br/>182 3100 <br/>188 3200 <br/>194 3300 <br/>200 3400 <br/>206 3500 <br/>212 3600 <br/>218 3700 <br/>224 3800 <br/>229 3900 <br/>235 4000 <br/>241 4100 <br/>247 4200 <br/>254 4300 <br/>260 4400 <br/>266 4500 <br/>272 4600 <br/>278 4700 <br/>284 4800 <br/>290 4900 <br/>296 5000 <br/>302 5100 <br/>309 5200 <br/>315 5300 <br/>321 5400 <br/>327 5500 <br/>333 5600 <br/>339 5700 <br/>345 5800 <br/>351 5900 <br/>357 6000 <br/>363 6100 <br/>369 6200 <br/>376 6300 <br/>382 6400 <br/>388 6500 <br/>394 6600 <br/>400 6700 <br/>406 6800 <br/>412 6900 <br/>418 7000 <br/>424 7100 <br/>430 7200 <br/>436 7300 <br/>442 7400 <br/>448 7500 <br/>454 7600 <br/>460 7700 <br/>466 7800 <br/>472 7900 <br/>478 8000 <br/>484 8100 <br/>490 8200 <br/>496 8300 <br/>502 8400 <br/>508 8500 <br/>514 8600 <br/>520 8700 <br/>526 8800 <br/>532 8900 <br/>538 9000 <br/>544 9100 <br/>550 9200 <br/>556 9300 <br/>562 9400 <br/>568 9500 <br/>574 9600 <br/>580 9700 <br/>587 9800 <br/>593 9900 <br/>End test, 599 sec</p></blockquote>
+
+
+<p>Отсюда мораль.</p>
+
+<ol>
+<li>Вставка 100 записей за (в  среднем) 6 секунд. Немного. 16 записей/сек</li>
+<li>достаточно линейно , в диапазоне до 10000 записей.</li>
+</ol>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Alexey Kishkin</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2008-09-04T00:00:00+05:00" pubdate data-updated="true">Sep 4<span>th</span>, 2008</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://odobenus.github.io/blog/2008/09/04/couchdb-benchmark/" data-via="" data-counturl="http://odobenus.github.io/blog/2008/09/04/couchdb-benchmark/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2008/08/16/turnout/" title="Previous Post: Превращение">&laquo; Превращение</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2008/09/05/couchdb-benchmark/" title="Next Post: couchdb benchmark еще раз">couchdb benchmark еще раз &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/04/28/pierieiezd-saita/">Переезд сайта</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/03/29/problemk/">ProblemK, Алгоритм и структуры данных</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2009/06/29/watcom-vs-gcc/">watcom vs gcc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2008/09/05/couchdb-benchmark-ii/">couchdb benchmark II</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2008/09/05/couchdb-benchmark/">couchdb benchmark еще раз</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/aleksey.kishkin@gmail.com?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Alexey Kishkin -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'dosro4no';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://odobenus.github.io/blog/2008/09/04/couchdb-benchmark/';
+        var disqus_url = 'http://odobenus.github.io/blog/2008/09/04/couchdb-benchmark/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

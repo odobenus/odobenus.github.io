@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>watcom vs gcc - Досрочно завершим!</title>
+  <meta name="author" content="Alexey Kishkin">
+
+  
+  <meta name="description" content="Для удовлетворения любопытства, скачал openwatcom 1.8 (такой бывший когда то
+известным компилятор c/c++), исходники под линукс. собрал, и попробовал &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://odobenus.github.io/blog/2009/06/29/watcom-vs-gcc">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Досрочно завершим!" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2233393-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Досрочно завершим!</a></h1>
+  
+    <h2>Статическая версия.</h2>
+  
+</hgroup>
+
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+   (function (d, w, c) {
+    (w[c] = w[c] || []).push(function() {
+       try {
+       w.yaCounter21140866 = new Ya.Metrika({id:21140866,
+          clickmap:true,
+          trackLinks:true,
+          accurateTrackBounce:true});
+       } catch(e) { }
+       });
+
+    var n = d.getElementsByTagName("script")[0],
+    s = d.createElement("script"),
+    f = function () { n.parentNode.insertBefore(s, n); };
+    s.type = "text/javascript";
+    s.async = true;
+    s.src = (d.location.protocol == "https:" ? "https:" : "http:") + "//mc.yandex.ru/metrika/watch.js";
+
+    if (w.opera == "[object Opera]") {
+    d.addEventListener("DOMContentLoaded", f, false);
+    } else { f(); }
+    })(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="//mc.yandex.ru/watch/21140866" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:odobenus.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Watcom vs Gcc</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-06-29T00:00:00+05:00" pubdate data-updated="true">Jun 29<span>th</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Для удовлетворения любопытства, скачал openwatcom 1.8 (такой бывший когда то
+известным компилятор c/c++), исходники под линукс. собрал, и попробовал
+тестовую задачку, <a href="http://shootout.alioth.debian.org/u32q/benchmark.php?test=binarytrees&amp;lang=gcc&amp;box=1">вот эту вот</a></p>
+
+<p>Резуьтаты:</p>
+
+<!-- more -->
+
+
+<p>GCC</p>
+
+<blockquote><p>walrus@home:/home/walrus/sandbox$ gcc btr.c -O3 -o btr_gcc -lm<br/>walrus@home:/home/walrus/sandbox$ time ./btr_gcc 20<br/>stretch tree of depth 21  check: -1<br/>2097152  trees of depth 4  check: -2097152<br/>524288 trees of depth 6  check: -524288<br/>131072  trees of depth 8  check: -131072<br/>32768  trees of depth 10  check: -32768<br/>8192  trees of depth 12  check: -8192<br/>2048  trees of depth 14  check: -2048<br/>512  trees of depth 16  check: -512<br/>128  trees of depth 18  check: -128<br/>32  trees of depth 20  check: -32<br/>long lived tree of depth 20  check: -1</p><p>real 1m2.138s<br/>user 1m1.852s<br/>sys 0m0.120s</p></blockquote>
+
+
+<p>Watcom</p>
+
+<blockquote><p>walrus@home:/home/walrus/sandbox$ PATH=$PATH:/opt/watcom/binl WATCOM=/opt/watcom owcc -I/opt/watcom/h  -O3 -obtr_wc  btr.c <br/>walrus@home:/home/walrus/sandbox$ time ./btr_wc 20<br/>stretch tree of depth 21  check: -1<br/>2097152  trees of depth 4  check: -2097152<br/>524288 trees of depth 6  check: -524288<br/>131072  trees of depth 8  check: -131072<br/>32768  trees of depth 10  check: -32768<br/>8192  trees of depth 12  check: -8192<br/>2048  trees of depth 14  check: -2048<br/>512  trees of depth 16  check: -512<br/>128  trees of depth 18  check: -128<br/>32  trees of depth 20  check: -32<br/>long lived tree of depth 20  check: -1</p><p>real 0m47.934s<br/>user 0m47.675s<br/>sys 0m0.136s</p></blockquote>
+
+
+<p>62 секунды против 48 в пользу watcom-а. Ай да старик watcom!! Вот это
+да!</p>
+
+<p><strong>UPD</strong>  Да, забыл &ndash; ubuntu 9.04 32 AMD, 4000+, gcc gcc версия 4.3.3 (Ubuntu 4.3.3-5ubuntu4), watcom :</p>
+
+<blockquote><p>owcc -v
+Open Watcom C/C++32 Compiler Driver Program Version 1.8beta1 LA
+Portions Copyright &copy; 1988-2002 Sybase, Inc. All Rights Reserved.
+Source code is available under the Sybase Open Watcom Public License.
+See <a href="http://www.openwatcom.org/">http://www.openwatcom.org/</a> for details.</p></blockquote>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Alexey Kishkin</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-06-29T00:00:00+05:00" pubdate data-updated="true">Jun 29<span>th</span>, 2009</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://odobenus.github.io/blog/2009/06/29/watcom-vs-gcc/" data-via="" data-counturl="http://odobenus.github.io/blog/2009/06/29/watcom-vs-gcc/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2008/09/05/couchdb-benchmark-ii/" title="Previous Post: couchdb benchmark II">&laquo; couchdb benchmark II</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2011/03/29/problemk/" title="Next Post: ProblemK, Алгоритм и структуры данных">ProblemK, Алгоритм и структуры данных &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/04/28/pierieiezd-saita/">Переезд сайта</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/03/29/problemk/">ProblemK, Алгоритм и структуры данных</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2009/06/29/watcom-vs-gcc/">watcom vs gcc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2008/09/05/couchdb-benchmark-ii/">couchdb benchmark II</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2008/09/05/couchdb-benchmark/">couchdb benchmark еще раз</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/aleksey.kishkin@gmail.com?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Alexey Kishkin -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'dosro4no';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://odobenus.github.io/blog/2009/06/29/watcom-vs-gcc/';
+        var disqus_url = 'http://odobenus.github.io/blog/2009/06/29/watcom-vs-gcc/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

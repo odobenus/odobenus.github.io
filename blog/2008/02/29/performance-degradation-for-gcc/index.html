@@ -1,0 +1,324 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Performance degradation for gcc - Досрочно завершим!</title>
+  <meta name="author" content="Alexey Kishkin">
+
+  
+  <meta name="description" content="Просмативая свои старые архивы, нашел мелкую программу sieve &ndash; решето
+Эратосфена, которая была написана на разных языках. И там же валялся &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://odobenus.github.io/blog/2008/02/29/performance-degradation-for-gcc">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Досрочно завершим!" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2233393-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Досрочно завершим!</a></h1>
+  
+    <h2>Статическая версия.</h2>
+  
+</hgroup>
+
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+   (function (d, w, c) {
+    (w[c] = w[c] || []).push(function() {
+       try {
+       w.yaCounter21140866 = new Ya.Metrika({id:21140866,
+          clickmap:true,
+          trackLinks:true,
+          accurateTrackBounce:true});
+       } catch(e) { }
+       });
+
+    var n = d.getElementsByTagName("script")[0],
+    s = d.createElement("script"),
+    f = function () { n.parentNode.insertBefore(s, n); };
+    s.type = "text/javascript";
+    s.async = true;
+    s.src = (d.location.protocol == "https:" ? "https:" : "http:") + "//mc.yandex.ru/metrika/watch.js";
+
+    if (w.opera == "[object Opera]") {
+    d.addEventListener("DOMContentLoaded", f, false);
+    } else { f(); }
+    })(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="//mc.yandex.ru/watch/21140866" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:odobenus.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Performance Degradation for Gcc</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2008-02-29T00:00:00+04:00" pubdate data-updated="true">Feb 29<span>th</span>, 2008</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Просмативая свои старые архивы, нашел мелкую программу sieve &ndash; решето
+Эратосфена, которая была написана на разных языках. И там же валялся бинарник
+этой программы, скомпилированной gcc в далеком (по моему 2002) году. Запустил
+из интереса &ndash; получилось</p>
+
+<!-- more -->
+
+
+<blockquote><p>103763 iterations in 10.000000 seconds.</p></blockquote>
+
+<p>Скомпилировал текущей версией gcc из ubuntu &ndash; получилось</p>
+
+<blockquote><p>96992 iterations in 10.000000 seconds</p></blockquote>
+
+<p>Вот тебе бабушка и Юрьев день! Какой был в 2002 gcc не помню, file a.out покзывает</p>
+
+<blockquote><p>a.out: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), for GNU/Linux 2.0.0,
+ dynamically linked (uses shared libs), not stripped</p></blockquote>
+
+<p>Теперь у нас gcc version 4.1.3 20070929 (prerelease) (Ubuntu 4.1.2-16ubuntu2), file
+показывает</p>
+
+<blockquote><p>a.out: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), for GNU/Linux 2.6.8,
+ dynamically linked (uses shared libs), not stripped</p></blockquote>
+
+<p>То есть все честно.. Но медленнее..</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Alexey Kishkin</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2008-02-29T00:00:00+04:00" pubdate data-updated="true">Feb 29<span>th</span>, 2008</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://odobenus.github.io/blog/2008/02/29/performance-degradation-for-gcc/" data-via="" data-counturl="http://odobenus.github.io/blog/2008/02/29/performance-degradation-for-gcc/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2008/02/08/standalone-connection-pool/" title="Previous Post: Standalone connection pool">&laquo; Standalone connection pool</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2008/03/11/erlang-snmp-client/" title="Next Post: erlang snmp client">erlang snmp client &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/04/28/pierieiezd-saita/">Переезд сайта</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/03/29/problemk/">ProblemK, Алгоритм и структуры данных</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2009/06/29/watcom-vs-gcc/">watcom vs gcc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2008/09/05/couchdb-benchmark-ii/">couchdb benchmark II</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2008/09/05/couchdb-benchmark/">couchdb benchmark еще раз</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/aleksey.kishkin@gmail.com?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Alexey Kishkin -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'dosro4no';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://odobenus.github.io/blog/2008/02/29/performance-degradation-for-gcc/';
+        var disqus_url = 'http://odobenus.github.io/blog/2008/02/29/performance-degradation-for-gcc/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
